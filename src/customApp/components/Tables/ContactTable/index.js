@@ -1,7 +1,7 @@
 import React, { Component } from "react";
+import { Icon } from "antd";
 // import TableWrapper, { CustomizedTableWrapper } from "../antTable.style";
 import Table from "../../../../components/uielements/table";
-import Form from "../../../../components/uielements/form";
 import IntlMessages from "../../../../components/utility/intlMessages";
 import {
   DateCell,
@@ -9,8 +9,9 @@ import {
   LinkCell,
   TextCell
 } from "../../../../components/tables/helperCells";
+import { FilterDropdown } from "../../../../components/tables/helperCells";
 
-const FormItem = Form.Item;
+import TableWrapper from "../table.style";
 
 const renderCell = (object, type, key) => {
   if (!key) return object;
@@ -90,24 +91,67 @@ export default class ContactTable extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      bordered: undefined,
-      loading: undefined,
+      dataList: this.props.dataList,
       pagination: true,
       size: "default",
       rowSelection: {}
     };
   }
+
+  handleSearch = (selectedKeys, confirm) => {
+    confirm();
+    this.setState({ searchText: selectedKeys[0] });
+  };
+
+  getColumnSearchProps = dataIndex => ({
+    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+      <FilterDropdown
+        searchText={selectedKeys[0]}
+        onInputChange={e =>
+          setSelectedKeys(e.target.value ? [e.target.value] : [])
+        }
+        placeholder={`Search ${dataIndex}`}
+        onSearch={() => this.handleSearch(selectedKeys, confirm)}
+      />
+    ),
+    filterIcon: filtered => (
+      <Icon type="search" style={{ color: filtered ? "#1890ff" : undefined }} />
+    ),
+    onFilter: (value, record) => {
+      var text = record[dataIndex];
+      if (dataIndex === "name") {
+        text = `${record.firstName} ${record.lastName}`;
+      } else if (dataIndex === "address") {
+        text = `${record.address1} ${record.address2} ${record.city} ${
+          record.state
+        } ${record.zip}`;
+      }
+      return text
+        .toString()
+        .toLowerCase()
+        .includes(value.toLowerCase());
+    },
+    onFilterDropdownVisibleChange: visible => {
+      if (visible) {
+        document.getElementById("tableFilterInput").focus();
+      }
+    }
+  });
+
   render() {
+    const filterColumns = columns.map(column => ({
+      ...column,
+      ...this.getColumnSearchProps(column.key)
+    }));
     return (
-      // <CustomizedTableWrapper className="isoCustomizedTableWrapper">
-      <Table
+      <TableWrapper
         {...this.props}
         {...this.state}
-        columns={columns}
+        bordered
+        columns={filterColumns}
         dataSource={this.props.dataList}
-        className="isoCustomizedTable"
+        className="isoSearchableTable"
       />
-      // </CustomizedTableWrapper>
     );
   }
 }
